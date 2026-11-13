@@ -111,7 +111,10 @@ const staticNavLinks = [
     -->
     <script>
       function armReveals() {
-        const els = document.querySelectorAll('[data-reveal]:not(.in-view)')
+        // Armed elements are skipped, so this is safe to call more than once.
+        const els = document.querySelectorAll(
+          '[data-reveal]:not(.in-view):not([data-reveal-armed])'
+        )
         if (!els.length) return
         const io = new IntersectionObserver(
           (entries) => {
@@ -123,12 +126,16 @@ const staticNavLinks = [
           },
           { threshold: 0.15 }
         )
-        els.forEach((el) => io.observe(el))
+        els.forEach((el) => {
+          el.setAttribute('data-reveal-armed', '')
+          io.observe(el)
+        })
       }
 
-      // astro:page-load also fires for the first document, so this one listener
-      // covers the initial load and every swap. Calling armReveals() directly
-      // as well put two observers on every element.
+      // Called directly as well as on astro:page-load: the hiding rule is
+      // unconditional, so if that event were ever missed the page would stay
+      // blank. The armed marker keeps the two calls from doubling observers.
+      armReveals()
       document.addEventListener('astro:page-load', armReveals)
     </script>
   </body>

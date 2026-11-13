@@ -602,8 +602,10 @@ test('the project facts stop being two columns on a phone', async () => {
     'the wide layout still pairs term and value side by side',
   )
 
-  const mobileBlock = detail.match(/@media \(max-width: 767px\) \{[\s\S]*$/)?.[0]
-  assert.ok(mobileBlock, 'the mobile breakpoint block must exist')
+  // The collapse starts at 1100px, not at the phone breakpoint: the sticky
+  // column is already too narrow for term beside value on a tablet.
+  const mobileBlock = detail.match(/@media \(max-width: 1100px\) \{[\s\S]*?\n  \}/)?.[0]
+  assert.ok(mobileBlock, 'the narrow column breakpoint block must exist')
   assert.match(
     mobileBlock,
     /\.detail-meta > div \{[\s\S]*?grid-template-columns: 1fr;/,
