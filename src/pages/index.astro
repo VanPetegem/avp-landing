@@ -2,6 +2,17 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import BigTypeRoll from '../components/BigTypeRoll'
 import HeroKnot from '../components/HeroKnot.astro'
+import { projects } from '../data/projects'
+
+// A video project shows its poster here: the home page is a list of stills,
+// and four autoplaying encodes would cost more than the section is worth.
+const work = projects.slice(0, 4).map((project) => ({
+  slug: project.slug,
+  title: project.title,
+  client: project.client,
+  year: project.year,
+  image: project.video?.poster ?? project.images[0],
+}))
 
 const steps = [
   {
@@ -64,12 +75,16 @@ const faqs = [
         A small studio that designs and builds software end to end: interface,
         product, and the infrastructure underneath.
       </p>
+      <div class="hero-actions">
+        <a class="text-link" href="/contact">
+          <span>Get in touch</span>
+          <span class="text-link-arrow" aria-hidden="true">&#8594;</span>
+        </a>
+        <a class="text-link" data-quiet href="/work">
+          <span>See the work</span>
+        </a>
+      </div>
     </div>
-
-    <a class="hero-scroll" href="#process" aria-label="Scroll to process">
-      <span class="label">Process</span>
-      <span class="hero-scroll-arrow" aria-hidden="true">&#8595;</span>
-    </a>
   </section>
 
   <section class="process" id="process">
@@ -85,12 +100,42 @@ const faqs = [
         <li class="process-step" data-reveal style={`--reveal-delay: ${i * 80}ms`}>
           <span class="process-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
           <div class="process-text">
-            <h3 class="process-title label">{step.title}</h3>
+            <h3 class="process-title">{step.title}</h3>
             <p class="process-body">{step.body}</p>
           </div>
         </li>
       ))}
     </ol>
+  </section>
+
+  <section class="work" aria-labelledby="work-heading">
+    <header class="work-head" data-reveal>
+      <h2 class="work-heading" id="work-heading">Selected work</h2>
+      <a class="text-link" href="/work">
+        <span>All work</span>
+        <span class="text-link-arrow" aria-hidden="true">&#8594;</span>
+      </a>
+    </header>
+    <ul class="work-grid">
+      {work.map((item, i) => (
+        <li class="work-item" data-reveal style={`--reveal-delay: ${(i % 2) * 90}ms`}>
+          <a href={`/work/${item.slug}`}>
+            <div class="work-frame">
+              <img
+                src={item.image}
+                alt={`${item.title} interface preview`}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="work-meta">
+              <h3 class="work-title">{item.title}</h3>
+              <span class="work-client">{item.client}, {item.year}</span>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 
   <section class="bigtype" aria-hidden="true">
@@ -108,7 +153,6 @@ const faqs = [
 
   <section class="faq">
     <header class="faq-head" data-reveal>
-      <span class="page-label">FAQ</span>
       <h2 class="faq-heading">The questions clients ask first.</h2>
     </header>
     <div class="faq-list">
@@ -126,27 +170,6 @@ const faqs = [
     </div>
   </section>
 </BaseLayout>
-
-<script>
-  function armReveals() {
-    const els = document.querySelectorAll('[data-reveal]:not(.in-view)')
-    if (!els.length) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          entry.target.classList.add('in-view')
-          io.unobserve(entry.target)
-        }
-      },
-      { threshold: 0.15 }
-    )
-    els.forEach((el) => io.observe(el))
-  }
-
-  armReveals()
-  document.addEventListener('astro:page-load', armReveals)
-</script>
 
 <script>
   import { calculateBigtypeShift } from '../scripts/bigtype-motion.mjs'
@@ -239,8 +262,7 @@ const faqs = [
     );
   }
 
-  .hero-content,
-  .hero-scroll {
+  .hero-content {
     z-index: 2;
   }
 
@@ -258,9 +280,10 @@ const faqs = [
     font-size: var(--text-hero);
     font-weight: 600;
     font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
     color: var(--color-ink);
     text-wrap: balance;
-    line-height: 1;
+    line-height: 0.96;
     margin: 0;
     animation: hero-in 0.9s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -276,34 +299,13 @@ const faqs = [
     animation: hero-in 0.9s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .hero-scroll {
-    position: absolute;
-    bottom: 3vh;
-    right: 10vw;
-    display: inline-flex;
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
-    color: var(--color-muted);
-    animation: hero-in 0.9s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-    transition: color 200ms;
-  }
-
-  .hero-scroll .label {
-    color: inherit;
-  }
-
-  .hero-scroll:hover {
-    color: var(--color-ink);
-  }
-
-  .hero-scroll-arrow {
-    display: inline-block;
-    animation: scroll-bob 2s ease-in-out infinite;
-  }
-
-  @keyframes scroll-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(4px); }
+    gap: 0.25rem 2rem;
+    margin-top: 2rem;
+    animation: hero-in 0.9s 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   @keyframes hero-in {
@@ -323,19 +325,20 @@ const faqs = [
     grid-template-columns: 5fr 7fr;
     gap: clamp(2rem, 6vw, 6rem);
     align-items: start;
-    padding: clamp(3.5rem, 8vh, 6rem) clamp(1.5rem, 10vw, 10rem);
+    padding: var(--section-y) var(--section-x);
     background: var(--color-bg);
   }
 
   .faq-heading {
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+    font-size: clamp(1.875rem, 3.6vw, 3rem);
     font-weight: 600;
     font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
     color: var(--color-ink);
-    line-height: 1.15;
+    line-height: 1.1;
     text-wrap: balance;
-    margin-top: 1rem;
+    margin-top: 0;
   }
 
   .faq-list {
@@ -364,12 +367,17 @@ const faqs = [
   }
 
   .faq-question:hover {
-    color: var(--color-muted);
+    color: var(--color-accent);
+  }
+
+  .faq-question:focus-visible {
+    outline-offset: -2px;
   }
 
   .faq-icon {
     font-family: var(--font-body);
     font-size: 1.25rem;
+    font-weight: 400;
     line-height: 1;
     color: var(--color-muted);
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -414,6 +422,133 @@ const faqs = [
 
     .faq-icon {
       transition: none;
+    }
+  }
+
+  /* ---- Selected work ---- */
+  .work {
+    padding: var(--section-y) var(--section-x);
+    background: var(--color-bg);
+  }
+
+  .work-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-bottom: clamp(2rem, 5vh, 3.5rem);
+  }
+
+  .work-heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.875rem, 3.6vw, 3rem);
+    font-weight: 600;
+    font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.1;
+    color: var(--color-ink);
+  }
+
+  /*
+   * Twelve columns, split 7 / 5 on the first row and 5 / 7 on the second, with
+   * the narrow tile of each row dropped below its neighbour. Two equal columns
+   * would read as a card grid; the offset makes it a hung set of plates.
+   */
+  .work-grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+    row-gap: clamp(3rem, 8vh, 5.5rem);
+  }
+
+  .work-item:nth-child(4n + 1),
+  .work-item:nth-child(4n) {
+    grid-column: span 7;
+  }
+
+  .work-item:nth-child(4n + 2),
+  .work-item:nth-child(4n + 3) {
+    grid-column: span 5;
+  }
+
+  .work-item:nth-child(4n + 2) {
+    margin-top: clamp(3rem, 12vh, 8rem);
+  }
+
+  .work-item a {
+    display: block;
+  }
+
+  .work-item a:focus-visible {
+    outline-offset: 6px;
+  }
+
+  .work-frame {
+    overflow: hidden;
+    aspect-ratio: 5 / 3;
+    background: var(--color-surface);
+    /* A ring rather than a border, so the frame stays exactly 5:3 and a light
+       screenshot still has an edge against the off white ground. */
+    box-shadow: 0 0 0 1px oklch(10% 0.005 260 / 10%);
+  }
+
+  .work-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (hover: hover) {
+    .work-item a:hover .work-frame img {
+      transform: scale(1.025);
+    }
+
+    .work-item a:hover .work-title {
+      color: var(--color-accent);
+    }
+  }
+
+  .work-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-top: 1rem;
+  }
+
+  .work-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    color: var(--color-ink);
+    transition: color 200ms;
+  }
+
+  .work-client {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 767px) {
+    .work-grid {
+      grid-template-columns: 1fr;
+      row-gap: 2.5rem;
+    }
+
+    .work-item:nth-child(n) {
+      grid-column: auto;
+      margin-top: 0;
+    }
+
+    .work-meta {
+      flex-direction: column;
+      gap: 0.15rem;
     }
   }
 
@@ -473,7 +608,7 @@ const faqs = [
     grid-template-columns: 5fr 7fr;
     gap: clamp(2rem, 6vw, 6rem);
     align-items: start;
-    padding: clamp(3.5rem, 8vh, 6rem) clamp(1.5rem, 10vw, 10rem);
+    padding: var(--section-y) var(--section-x);
     background: var(--color-bg);
   }
 
@@ -484,13 +619,14 @@ const faqs = [
 
   .process-heading {
     font-family: var(--font-display);
-    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+    font-size: clamp(1.875rem, 3.6vw, 3rem);
     font-weight: 600;
     font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
     color: var(--color-ink);
-    line-height: 1.15;
+    line-height: 1.1;
     text-wrap: balance;
-    margin-top: 1rem;
+    margin-top: 0.25rem;
   }
 
   .process-steps {
@@ -524,14 +660,21 @@ const faqs = [
     font-size: clamp(3rem, 7vw, 5.5rem);
     font-weight: 600;
     font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
+    font-variant-numeric: lining-nums tabular-nums;
     line-height: 0.9;
     color: var(--color-ink);
   }
 
+  /* Sentence case at body size, not another tracked uppercase label: the
+     page already spends that voice on the section kicker above. */
   .process-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
     color: var(--color-ink);
-    display: block;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .process-body {
@@ -566,18 +709,17 @@ const faqs = [
       right: 1.5rem;
     }
 
-    .hero-scroll {
-      right: 1.5rem;
-      bottom: calc(1.5rem + env(safe-area-inset-bottom));
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .hero-title,
     .hero-tagline,
-    .hero-scroll,
-    .hero-scroll-arrow {
+    .hero-actions {
       animation: none;
+    }
+
+    .work-frame img {
+      transition: none;
     }
   }
 </style>

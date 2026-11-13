@@ -60,6 +60,22 @@ export const projects: Project[] = [
     credits: { Studio: 'AVP Software' },
   },
   {
+    slug: 'hack-league',
+    client: 'START Global',
+    year: '2026',
+    title: 'START Hack League',
+    description:
+      'Platform for START chapter hackathons and one season across them. Chapters run their own events: applications, teams, cases, submissions, partner and community votes. The league layer turns confirmed results into a single individual leaderboard that carries through to the St. Gallen finale.',
+    url: 'https://hackleague.org',
+    tech: ['SvelteKit', 'Svelte 5', 'Supabase', 'Cloudflare Workers', 'Tailwind CSS 4'],
+    images: [
+      '/images/hack-league.avif',
+      '/images/hack-league-events.avif',
+      '/images/hack-league-mobile.avif',
+    ],
+    credits: { Studio: 'AVP Software' },
+  },
+  {
     slug: 'crux',
     client: 'AVP Software',
     year: '2025',

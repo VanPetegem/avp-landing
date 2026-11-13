@@ -12,13 +12,18 @@ describe('work card adapter', () => {
         title: 'START Summit x Hack Volunteer Platform',
         href: '/work/volunteer-platform',
       },
+      {
+        id: 'hack-league',
+        title: 'START Hack League',
+        href: '/work/hack-league',
+      },
       { id: 'crux', title: 'Crux', href: '/work/crux' },
       { id: 'amber', title: 'Amber', href: '/work/amber' },
     ])
   })
 
   it('uses responsive video for volunteering and first images elsewhere', () => {
-    const [volunteer, crux, amber] = toWorkCards(projects)
+    const [volunteer, , crux, amber] = toWorkCards(projects)
 
     expect(volunteer.media).toEqual({
       kind: 'video',
@@ -42,7 +47,8 @@ describe('work card adapter', () => {
   })
 
   it('rejects an image project without a usable first image', () => {
-    const broken = [{ ...projects[1], images: [] }]
+    const crux = projects.find((project) => project.slug === 'crux')!
+    const broken = [{ ...crux, images: [] }]
 
     expect(() => toWorkCards(broken)).toThrow(
       'Project "crux" needs a first image for the work card',

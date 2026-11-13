@@ -12,6 +12,23 @@
     height: 100%;
     pointer-events: none;
   }
+
+  /*
+   * On a narrow viewport the copy runs gutter to gutter through the middle of
+   * the hero, and the knot's lower loops crossed the title and tagline at full
+   * strength. The top of the knot stays as drawn; it thins out where the type
+   * begins so the wireframe reads as texture behind the copy, not through it.
+   */
+  @media (max-width: 767px) {
+    .hero-knot {
+      mask-image: linear-gradient(
+        to bottom,
+        #000 24%,
+        rgb(0 0 0 / 18%) 44%,
+        rgb(0 0 0 / 18%) 100%
+      );
+    }
+  }
 </style>
 
 <script>

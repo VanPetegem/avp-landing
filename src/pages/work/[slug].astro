@@ -16,6 +16,18 @@ if (!project) {
 
 const morph = fade({ duration: 300 })
 
+// The page used to end on its last screenshot. The list wraps, so the last
+// project leads back to the first rather than to nothing.
+const index = projects.findIndex((p) => p.slug === slug)
+const next = projects[(index + 1) % projects.length]
+
+const meta: [string, string][] = [
+  ['Client', project.client],
+  ['Year', project.year],
+  ['Built with', project.tech.join(', ')],
+  ...Object.entries(project.credits),
+]
+
 // The gallery used to pad a single-image project out to three copies of that
 // one image "for visual richness". It bought no information and cost a phone
 // three decodes of a desktop-sized asset, so the page now renders exactly what
@@ -84,8 +96,6 @@ const videoTierScript = `(function () {
         data-transition-direction="back"
       >&#8592; All work</a>
 
-      <span class="label">{project.client}</span>
-
       <h1
         class="detail-title"
         transition:name={`title-${project.slug}`}
@@ -96,31 +106,24 @@ const videoTierScript = `(function () {
 
       <p class="detail-desc">{project.description}</p>
 
-      <div class="detail-tech">
-        <span class="label">Built with</span>
-        <span class="detail-tech-list">{project.tech.join(', ')}</span>
-      </div>
-
       <a
         href={project.url}
         target="_blank"
         rel="noopener noreferrer"
-        class="detail-visit label"
+        class="text-link detail-visit"
       >
-        Visit project &#8599;
+        <span>Visit project</span>
+        <span class="text-link-arrow" aria-hidden="true">&#8599;</span>
       </a>
 
-      <div class="detail-credits">
-        <span class="label">Credits</span>
-        <dl class="credits-list">
-          {Object.entries(project.credits).map(([role, name]) => (
-            <>
-              <dt>{role}</dt>
-              <dd>{name}</dd>
-            </>
-          ))}
-        </dl>
-      </div>
+      <dl class="detail-meta">
+        {meta.map(([term, value]) => (
+          <div>
+            <dt>{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
     </aside>
 
     <div class="detail-right">
@@ -164,6 +167,14 @@ const videoTierScript = `(function () {
           transition:animate={i === 0 && !project.video ? morph : undefined}
         />
       ))}
+
+      <a class="detail-next" href={`/work/${next.slug}`}>
+        <span class="detail-next-label">Next project</span>
+        <span class="detail-next-title">
+          {next.title}
+          <span class="detail-next-arrow" aria-hidden="true">&#8594;</span>
+        </span>
+      </a>
     </div>
   </div>
 </BaseLayout>
@@ -199,13 +210,7 @@ const videoTierScript = `(function () {
   }
 
   .detail-back:hover {
-    color: var(--color-accent);
-    opacity: 0.6;
-  }
-
-  .detail-back:focus-visible {
-    outline: 2px solid var(--color-ink);
-    outline-offset: 4px;
+    color: var(--color-ink);
   }
 
   .detail-title {
@@ -213,10 +218,11 @@ const videoTierScript = `(function () {
     font-size: var(--text-title);
     font-weight: 600;
     font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
     color: var(--color-ink);
-    line-height: 1.1;
+    line-height: 1.06;
     text-wrap: balance;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
   }
 
   .detail-desc {
@@ -228,70 +234,63 @@ const videoTierScript = `(function () {
     line-height: 1.6;
   }
 
-  .detail-tech {
-    margin-top: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .detail-tech-list {
-    font-family: var(--font-body);
-    font-size: 1rem;
-    color: var(--color-ink);
-  }
-
   .detail-visit {
-    display: inline-block;
-    color: var(--color-ink);
-    margin-top: 2rem;
-    transition: color 200ms;
+    align-self: flex-start;
+    margin-top: 1.25rem;
   }
 
-  .detail-visit:hover {
-    color: var(--color-accent);
+  /* The diagonal arrow leaves along its own direction. */
+  .detail-visit:hover .text-link-arrow {
+    transform: translate(3px, -3px);
   }
 
-  .detail-credits {
+  /*
+   * One ruled table for everything that is a fact about the project. Client,
+   * year, stack and credits were three differently shaped blocks; as rows of
+   * one list they align on the same two columns and the column can end on it.
+   */
+  .detail-meta {
     margin-top: auto;
     padding-top: 3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
   }
 
-  .credits-list {
+  .detail-meta > div {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem 1rem;
-    list-style: none;
-    margin-top: 0.5rem;
+    grid-template-columns: 7rem 1fr;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--color-border);
   }
 
-  .credits-list dt {
-    font-family: var(--font-body);
-    font-size: var(--text-label);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+  .detail-meta dt {
+    font-size: 0.875rem;
     color: var(--color-muted);
   }
 
-  .credits-list dd {
-    font-family: var(--font-body);
-    font-size: 1rem;
+  .detail-meta dd {
+    font-size: 0.9375rem;
     color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
   }
 
   .detail-right {
     /* Clear the fixed nav pill (top: 20px + 40px tall) so the leading
        image/video doesn't slide underneath it. */
     padding-top: clamp(5rem, 10vh, 7rem);
+    padding-right: clamp(1.25rem, 3vw, 3rem);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
   }
 
   .detail-right img,
   .detail-right .detail-video {
     width: 100%;
     display: block;
+    /* The screenshots have different grounds, some of them the page's own off
+       white. A ring gives each one an edge; butted together they read as one
+       long stitched image. */
+    box-shadow: 0 0 0 1px oklch(10% 0.005 260 / 10%);
   }
 
   .detail-video {
@@ -300,9 +299,55 @@ const videoTierScript = `(function () {
     background: var(--color-ink);
   }
 
-  .detail-image-mobile {
+  .detail-right .detail-image-mobile {
     width: min(280px, 50%);
-    margin: 3rem auto;
+    margin: 1.5rem auto;
+  }
+
+  .detail-next {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: clamp(2rem, 6vh, 4rem);
+    padding: 2rem 0 clamp(3rem, 8vh, 5rem);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .detail-next-label {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+
+  .detail-next-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+    font-weight: 600;
+    font-optical-sizing: none;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.1;
+    text-wrap: balance;
+    color: var(--color-ink);
+    transition: color 200ms;
+  }
+
+  .detail-next-arrow {
+    display: inline-block;
+    margin-left: 0.25em;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .detail-next:hover .detail-next-title {
+    color: var(--color-accent);
+  }
+
+  .detail-next:hover .detail-next-arrow {
+    transform: translateX(6px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .detail-next-arrow {
+      transition: none;
+    }
   }
 
   @media (max-width: 767px) {
@@ -318,27 +363,23 @@ const videoTierScript = `(function () {
 
     .detail-right {
       /* Left column already clears the nav and sits above us on mobile. */
+      padding: 0 1.25rem;
+    }
+
+    .detail-meta {
+      margin-top: 2.5rem;
       padding-top: 0;
     }
 
-    .detail-credits {
-      margin-top: 3rem;
-    }
-
-    .credits-list {
-      /* Two columns put an uppercase letterspaced role and its name into half
-         of a 320px screen, and both wrap to ragged fragments. Stacked, the
-         pair reads as the definition list it already is. */
+    .detail-meta > div {
+      /* A 7rem term column leaves about 150px for the value on a 320px
+         screen, and the stack line wraps to fragments. Stacked, each pair
+         reads as the definition it is. */
       grid-template-columns: 1fr;
-      gap: 0.15rem 0;
+      gap: 0.15rem;
     }
 
-    .credits-list dt:not(:first-of-type) {
-      /* The row gap is gone, so the pairs need their own separation. */
-      margin-top: 0.75rem;
-    }
-
-    .detail-image-mobile {
+    .detail-right .detail-image-mobile {
       /* min(280px, 50%) painted this at 195px on a 390px screen: the one asset
          that is about phones, rendered smallest on a phone. */
       width: min(360px, 86%);

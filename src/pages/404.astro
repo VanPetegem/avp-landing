@@ -8,21 +8,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     <div class="page-body">
       <p>The link is broken or the page has moved. Nothing here to see.</p>
     </div>
-    <a href="/" class="back-home label">Back to home &#8594;</a>
+    <a href="/" class="text-link">
+      <span>Back to home</span>
+      <span class="text-link-arrow" aria-hidden="true">&#8594;</span>
+    </a>
   </main>
 </BaseLayout>
 
-<style>
-  .back-home {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--color-ink);
-    margin-top: 1rem;
-    transition: gap 200ms;
-  }
-
-  .back-home:hover {
-    gap: 0.85rem;
-  }
-</style>

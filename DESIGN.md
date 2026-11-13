@@ -164,7 +164,9 @@ every display size is a fluid `clamp()` so the scale holds from mobile to wide:
 | `headline-section` | `clamp(1.75rem, 3.5vw, 2.75rem)` |
 | `body-lg` | `clamp(1rem, 1.6vw, 1.25rem)` |
 
-Long-form prose caps at `55ch`.
+Long-form prose caps at `55ch`. Every display rule sets
+`letter-spacing: var(--tracking-display)` (`-0.022em`): Bodoni at its text
+optical size is spaced for 11px and reads loose when set large.
 
 ## Layout
 
@@ -214,6 +216,12 @@ distinction.
 - **Scroll hint:** Fixed to the bottom center, label typography in secondary,
   with a 1.6s bobbing arrow. Hides itself once the user has scrolled, and drops
   its animation under reduced motion.
+- **Text link (`.text-link`):** The one action style. Ink text on a 1px rule
+  with an arrow that moves on hover; `data-quiet` drops the rule for a
+  secondary action. There are still no filled buttons.
+- **Footer (`src/components/SiteFooter.astro`):** The only inverted surface:
+  ink ground, off white type, `on-ink` muted and hairline tokens. Carries the
+  contact invitation (off on `/contact`), site and external links.
 - **FAQ row:** A native `<details>`/`<summary>` accordion on the page ground,
   separated by hairline dividers, square corners, `1.5rem` vertical padding. The
   disclosure marker is removed and replaced with an icon that rotates over 300ms.
@@ -246,15 +254,19 @@ distinction.
 `src/pages/index.astro`:
 
 1. **Hero**, full viewport. `HeroKnot` canvas behind the `AVP Software`
-   wordmark and tagline, with a scroll cue pointing at the process section.
+   wordmark, the tagline, and two text links (contact, work). No scroll cue.
 2. **Process**, two column, sticky heading beside a four step list (Map,
    Design, Build, Run) with oversized numerals.
-3. **Big type**, two oversized display lines (`DESIGN BUILD`, `AUTOMATE RUN`)
+3. **Selected work**, the first four projects as stills on a twelve column
+   grid split 7 / 5 then 5 / 7, the narrow tile of the first row hung lower.
+4. **Big type**, two oversized display lines (`DESIGN BUILD`, `AUTOMATE RUN`)
    that drift horizontally on scroll.
-4. **FAQ**, two column accordion of the questions clients ask first.
+5. **FAQ**, two column accordion of the questions clients ask first.
 
 Other pages: `/work` (card stack index plus `[slug]` detail pages), `/about`,
-`/contact`. All inherit `src/layouts/BaseLayout.astro`.
+`/contact`. About and Contact use `.page-split`, the same 5fr / 7fr split and
+gutters as the home sections. All inherit `src/layouts/BaseLayout.astro`,
+which closes every page with `SiteFooter`.
 
 ## Hero interaction
 

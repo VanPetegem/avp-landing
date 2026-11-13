@@ -7,6 +7,11 @@
   --color-border:  oklch(85% 0.003 260);
   --color-overlay: oklch(0% 0 0 / 20%);
   --color-accent:  oklch(58% 0.15 35);
+  /* The inverted footer band. Muted and hairline are re-stepped for an ink
+     ground; the accent is lifted so a hover still clears 4.5:1 on it. */
+  --color-on-ink-muted:  oklch(72% 0.005 260);
+  --color-on-ink-border: oklch(100% 0 0 / 14%);
+  --color-accent-on-ink: oklch(72% 0.14 40);
 
   --font-display: 'Bodoni Moda', Georgia, serif;
   --font-body:    'Geist', system-ui, -apple-system, sans-serif;
@@ -16,6 +21,14 @@
   --text-body:  1rem;
   --text-small: 0.75rem;
   --text-label: 0.6875rem;
+
+  /* Bodoni at its text optical size is spaced for 11px. Set large, that
+     spacing reads loose, so every display rule pulls it in by the same step. */
+  --tracking-display: -0.022em;
+
+  /* Shared gutters for the two column sections (home, About, Contact). */
+  --section-x: clamp(1.5rem, 10vw, 10rem);
+  --section-y: clamp(4.5rem, 12vh, 8rem);
 }
 
 /* ---- Reset ---- */
@@ -38,6 +51,27 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* One focus treatment for the whole site. currentColor would vanish on the
+   links that fade to muted, so the ring is ink unless a surface overrides it. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 img, video {
@@ -60,11 +94,104 @@ a {
   color: var(--color-muted);
 }
 
-/* ---- Shared page layout (About, Contact) ---- */
+/*
+ * The site's one text action. No filled buttons anywhere: an action is ink
+ * text on a hairline that is already drawn, and hovering moves the arrow and
+ * takes the accent.
+ */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  transition: color 200ms;
+}
+
+.text-link > span:first-child {
+  padding-bottom: 0.2em;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% 1px;
+}
+
+.text-link-arrow {
+  display: inline-block;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.text-link:hover {
+  color: var(--color-accent);
+}
+
+.text-link:hover .text-link-arrow {
+  transform: translateX(4px);
+}
+
+.text-link[data-quiet] {
+  color: var(--color-muted);
+}
+
+.text-link[data-quiet] > span:first-child {
+  background: none;
+}
+
+.text-link[data-quiet]:hover {
+  color: var(--color-ink);
+}
+
+/* ---- Shared page layout (404) ---- */
 .page-container {
   max-width: 640px;
   margin: 0 auto;
   padding: clamp(8rem, 15vh, 12rem) 1.5rem clamp(5rem, 10vw, 9rem);
+}
+
+/*
+ * ---- Shared split layout (About, Contact) ----
+ * The same 5fr / 7fr split and gutters as the home page sections, so a prose
+ * page lines up with the landing instead of sitting in its own narrow column
+ * with half the viewport empty beside it.
+ */
+.page-split {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: start;
+  /* Fills the viewport above the footer so a short page does not end at the
+     middle of the screen. */
+  min-height: 82svh;
+  padding: clamp(9rem, 22vh, 13rem) var(--section-x) var(--section-y);
+}
+
+.page-split-head {
+  position: sticky;
+  top: clamp(6rem, 18vh, 10rem);
+}
+
+.page-split .page-heading {
+  margin-bottom: 0;
+}
+
+.page-lead {
+  font-size: clamp(1.125rem, 1.7vw, 1.375rem);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  max-width: 36ch;
+}
+
+@media (max-width: 767px) {
+  .page-split {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding-top: 8rem;
+  }
+
+  .page-split-head {
+    position: static;
+  }
 }
 
 .page-label {
@@ -80,11 +207,12 @@ a {
 
 .page-heading {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(2.25rem, 4.6vw, 4rem);
   font-weight: 600;
   font-optical-sizing: none;
+  letter-spacing: var(--tracking-display);
   color: var(--color-ink);
-  line-height: 1.05;
+  line-height: 1.02;
   text-wrap: balance;
   margin: 0 0 2rem;
 }
@@ -227,6 +355,10 @@ html.js [data-reveal].in-view {
 
   .work-scroll-hint-arrow {
     animation: none;
+  }
+
+  .text-link-arrow {
+    transition: none;
   }
 
   /*
