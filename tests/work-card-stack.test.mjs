@@ -587,26 +587,29 @@ test('/work names itself, visibly on a phone and to assistive tech everywhere', 
   )
 })
 
-test('the credits list stops being two columns on a phone', async () => {
+test('the project facts stop being two columns on a phone', async () => {
   const detail = await readFile(
     new URL('../src/pages/work/[slug].astro', import.meta.url),
     'utf8',
   )
 
-  // `1fr 1fr` at every width squeezes an uppercase letterspaced role and its
-  // name into half of a 320px screen, so both wrap to ragged fragments.
+  // Client, year, stack and credits are one ruled list. Term beside value at
+  // every width squeezes the value into what is left of a 320px screen, so it
+  // wraps to ragged fragments.
   assert.match(
     detail,
-    /\.credits-list \{[\s\S]*?grid-template-columns: 1fr 1fr;/,
-    'the wide layout still pairs role and name side by side',
+    /\.detail-meta > div \{[\s\S]*?grid-template-columns: 7rem 1fr;/,
+    'the wide layout still pairs term and value side by side',
   )
 
-  const mobileBlock = detail.match(/@media \(max-width: 767px\) \{[\s\S]*$/)?.[0]
-  assert.ok(mobileBlock, 'the mobile breakpoint block must exist')
+  // The collapse starts at 1100px, not at the phone breakpoint: the sticky
+  // column is already too narrow for term beside value on a tablet.
+  const mobileBlock = detail.match(/@media \(max-width: 1100px\) \{[\s\S]*?\n  \}/)?.[0]
+  assert.ok(mobileBlock, 'the narrow column breakpoint block must exist')
   assert.match(
     mobileBlock,
-    /\.credits-list \{[\s\S]*?grid-template-columns: 1fr;/,
-    'credits must collapse to one column below the layout breakpoint',
+    /\.detail-meta > div \{[\s\S]*?grid-template-columns: 1fr;/,
+    'facts must collapse to one column below the layout breakpoint',
   )
 })
 

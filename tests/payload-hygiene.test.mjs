@@ -156,6 +156,7 @@ test('every display-font rule pins optical sizing, which the pinned request assu
     '../src/pages/work/index.astro',
     '../src/pages/work/[slug].astro',
     '../src/layouts/BaseLayout.astro',
+    '../src/components/SiteFooter.astro',
   ]
 
   for (const file of files) {

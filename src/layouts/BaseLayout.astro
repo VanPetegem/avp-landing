@@ -1,15 +1,19 @@
 ---
 import NavPill from '../components/NavPill'
+import SiteFooter from '../components/SiteFooter.astro'
 import '../styles/global.css'
 import { ViewTransitions } from 'astro:transitions'
 
 export interface Props {
   title?: string
   description?: string
+  /** Show the invitation above the footer links. Off on /contact. */
+  footerCta?: boolean
 }
 const {
   title = 'AVP Software',
   description = 'AVP Software: creative software studio',
+  footerCta = true,
 } = Astro.props
 
 const canonical = new URL(Astro.url.pathname, Astro.site)
@@ -98,6 +102,42 @@ const staticNavLinks = [
       ))}
     </nav>
     <slot />
+    <SiteFooter cta={footerCta} />
+
+    <!--
+      Scroll reveal for anything carrying data-reveal. Lives in the layout so
+      every page can opt in: the hiding rule in global.css is site-wide, and an
+      element hidden by it on a page with no observer would never come back.
+    -->
+    <script>
+      function armReveals() {
+        // Armed elements are skipped, so this is safe to call more than once.
+        const els = document.querySelectorAll(
+          '[data-reveal]:not(.in-view):not([data-reveal-armed])'
+        )
+        if (!els.length) return
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue
+              entry.target.classList.add('in-view')
+              io.unobserve(entry.target)
+            }
+          },
+          { threshold: 0.15 }
+        )
+        els.forEach((el) => {
+          el.setAttribute('data-reveal-armed', '')
+          io.observe(el)
+        })
+      }
+
+      // Called directly as well as on astro:page-load: the hiding rule is
+      // unconditional, so if that event were ever missed the page would stay
+      // blank. The armed marker keeps the two calls from doubling observers.
+      armReveals()
+      document.addEventListener('astro:page-load', armReveals)
+    </script>
   </body>
 </html>
 
