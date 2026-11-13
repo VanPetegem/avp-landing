@@ -126,7 +126,9 @@ const staticNavLinks = [
         els.forEach((el) => io.observe(el))
       }
 
-      armReveals()
+      // astro:page-load also fires for the first document, so this one listener
+      // covers the initial load and every swap. Calling armReveals() directly
+      // as well put two observers on every element.
       document.addEventListener('astro:page-load', armReveals)
     </script>
   </body>

@@ -160,12 +160,13 @@ every display size is a fluid `clamp()` so the scale holds from mobile to wide:
 | Token | Fluid value |
 | --- | --- |
 | `display-hero` | `clamp(3.5rem, 8vw, 8rem)` |
-| `display-page` | `clamp(2rem, 4vw, 3.5rem)` |
-| `headline-section` | `clamp(1.75rem, 3.5vw, 2.75rem)` |
+| `display-page` | `clamp(2.25rem, 4.6vw, 4rem)` |
+| `headline-section` | `clamp(1.875rem, 3.6vw, 3rem)` |
 | `body-lg` | `clamp(1rem, 1.6vw, 1.25rem)` |
 
-Long-form prose caps at `55ch`. Every display rule sets
-`letter-spacing: var(--tracking-display)` (`-0.022em`): Bodoni at its text
+Long-form prose caps at `55ch`. Headings set
+`letter-spacing: var(--tracking-display)` (`-0.022em`; the big type lines and
+the work card titles keep their own spacing): Bodoni at its text
 optical size is spaced for 11px and reads loose when set large.
 
 ## Layout

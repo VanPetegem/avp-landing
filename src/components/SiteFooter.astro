@@ -94,6 +94,13 @@ const year = new Date().getFullYear()
     padding: 0 var(--footer-x) calc(2rem + env(safe-area-inset-bottom, 0px));
   }
 
+  /* The site-wide selection is ink on off white, which is this band's own
+     ground: selected text here would look unselected. */
+  .site-footer ::selection {
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+
   .site-footer a {
     transition: color 200ms;
   }

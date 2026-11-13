@@ -350,6 +350,30 @@ const videoTierScript = `(function () {
     }
   }
 
+  /*
+   * Between the phone layout and a full laptop the sticky column is a short,
+   * narrow box: a long description plus the facts list outgrew its 100dvh and
+   * the list ended up inside a nested scroller, with a value column too thin
+   * to hold the stack line. Here the column scrolls with the page instead and
+   * each fact stacks.
+   */
+  @media (max-width: 1100px) {
+    .detail-left {
+      position: static;
+      height: auto;
+    }
+
+    .detail-meta {
+      margin-top: 2.5rem;
+      padding-top: 0;
+    }
+
+    .detail-meta > div {
+      grid-template-columns: 1fr;
+      gap: 0.15rem;
+    }
+  }
+
   @media (max-width: 767px) {
     .detail-layout {
       grid-template-columns: 1fr;
