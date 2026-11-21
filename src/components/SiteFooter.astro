@@ -81,7 +81,7 @@ const year = new Date().getFullYear()
   <div class="footer-base">
     <span>&copy; {year} AVP Software</span>
     <span class="footer-place">
-      St. Gallen and Baden, Switzerland<span class="footer-clock" data-studio-clock> <span aria-hidden="true">&middot;</span> <time data-studio-time>00:00 CET</time></span>
+      St. Gallen and Baden, Switzerland<span class="footer-clock" data-studio-clock> <span aria-hidden="true">&middot;</span> <time data-studio-time>00:00 CEST</time></span>
     </span>
   </div>
 </footer>
@@ -91,10 +91,10 @@ const year = new Date().getFullYear()
 
   /*
    * The studio's wall clock beside its address: a visitor in another zone sees
-   * at a glance whether a reply is likely today. The server ships a same-width
-   * placeholder under visibility: hidden, which reserves the space (no shift
-   * when it appears) and keeps it out of the accessibility tree until it
-   * holds a real time. Named by zone, since "local" reads as the visitor's own
+   * at a glance whether a reply is likely today. The server ships the widest
+   * label (summer's CEST) under visibility: hidden; its width is locked as a
+   * minimum before the first write, so neither CET nor CEST shifts the line,
+   * and it stays out of the accessibility tree until it holds a real time. Named by zone, since "local" reads as the visitor's own
    * time. It ticks on the minute boundary, so the digits change
    * when the minute does rather than up to 59 seconds late.
    */
@@ -105,6 +105,8 @@ const year = new Date().getFullYear()
     const clock = document.querySelector<HTMLElement>('[data-studio-clock]')
     const time = clock?.querySelector<HTMLTimeElement>('[data-studio-time]')
     if (!clock || !time) return
+
+    if (!clock.dataset.ready) time.style.minInlineSize = `${time.offsetWidth}px`
 
     const tick = () => {
       const now = new Date()
@@ -259,6 +261,10 @@ const year = new Date().getFullYear()
 
   .footer-clock {
     white-space: nowrap;
+  }
+
+  .footer-clock time {
+    display: inline-block;
   }
 
   .footer-clock:not([data-ready]) {

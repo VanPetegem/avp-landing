@@ -96,7 +96,7 @@ const faqs = [
       </h2>
       <div class="process-rail" data-process-rail aria-hidden="true">
         <span class="process-rail-fill"></span>
-        <ol class="process-rail-steps">
+        <ol class="process-rail-steps" style={`--steps: ${steps.length}`}>
           {steps.map((step) => (
             <li data-process-mark>{step.title}</li>
           ))}
@@ -227,6 +227,7 @@ const faqs = [
       if (!list.isConnected) {
         removeEventListener('scroll', onScroll)
         removeEventListener('resize', onScroll)
+        resizes.disconnect()
         return
       }
       const anchor = innerHeight / 2
@@ -244,8 +245,12 @@ const faqs = [
       ticking = true
       requestAnimationFrame(update)
     }
+    // Font swaps, late images and restored scroll move the steps without a
+    // scroll event; re-measure whenever the list's box changes.
+    const resizes = new ResizeObserver(onScroll)
     addEventListener('scroll', onScroll, { passive: true })
     addEventListener('resize', onScroll, { passive: true })
+    resizes.observe(list)
     update()
     requestAnimationFrame(() => {
       list.dataset.live = ''
@@ -307,6 +312,37 @@ const faqs = [
       if (!frame) frame = requestAnimationFrame(tick)
     }
 
+    const hide = () => {
+      if (!pill.isConnected) {
+        removeEventListener('blur', hide)
+        document.removeEventListener('visibilitychange', hide)
+        return
+      }
+      if (!pill.hasAttribute('data-visible')) return
+      shown = false
+      hiddenAt = performance.now()
+      pill.toggleAttribute('data-visible', false)
+    }
+    // Keyboard or scrollbar scrolling moves the tile away from a still mouse
+    // without a pointerleave; hide the pill once it no longer sits on a tile.
+    let checking = false
+    const recheck = () => {
+      checking = false
+      if (!pill.isConnected) {
+        removeEventListener('scroll', onScroll)
+        return
+      }
+      if (!document.elementFromPoint(goal.x, goal.y)?.closest('.work-item a')) hide()
+    }
+    const onScroll = () => {
+      if (checking || !pill.hasAttribute('data-visible')) return
+      checking = true
+      requestAnimationFrame(recheck)
+    }
+    addEventListener('scroll', onScroll, { passive: true })
+    addEventListener('blur', hide)
+    document.addEventListener('visibilitychange', hide)
+
     links.forEach((link) => {
       link.addEventListener('pointerenter', (event) => {
         if (event.pointerType !== 'mouse') return
@@ -318,11 +354,7 @@ const faqs = [
         pill.toggleAttribute('data-visible', true)
       })
       link.addEventListener('pointermove', follow)
-      link.addEventListener('pointerleave', () => {
-        shown = false
-        hiddenAt = performance.now()
-        pill.toggleAttribute('data-visible', false)
-      })
+      link.addEventListener('pointerleave', hide)
     })
   }
 
@@ -913,7 +945,7 @@ const faqs = [
   .process-rail-steps {
     list-style: none;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--steps, 4), 1fr);
   }
 
   .process-rail-steps li {
