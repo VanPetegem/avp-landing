@@ -80,9 +80,47 @@ const year = new Date().getFullYear()
 
   <div class="footer-base">
     <span>&copy; {year} AVP Software</span>
-    <span>St. Gallen and Baden, Switzerland</span>
+    <span class="footer-place">
+      St. Gallen and Baden, Switzerland<span class="footer-clock" data-studio-clock> <span aria-hidden="true">&middot;</span> <time data-studio-time>00:00 CEST</time></span>
+    </span>
   </div>
 </footer>
+
+<script>
+  import { formatStudioTime, formatStudioZone } from '../scripts/studio-clock.mjs'
+
+  /*
+   * The studio's wall clock beside its address: a visitor in another zone sees
+   * at a glance whether a reply is likely today. The server ships the widest
+   * label (summer's CEST) under visibility: hidden; its width is locked as a
+   * minimum before the first write, so neither CET nor CEST shifts the line,
+   * and it stays out of the accessibility tree until it holds a real time. Named by zone, since "local" reads as the visitor's own
+   * time. It ticks on the minute boundary, so the digits change
+   * when the minute does rather than up to 59 seconds late.
+   */
+  let timer = 0
+
+  function armStudioClock() {
+    clearTimeout(timer)
+    const clock = document.querySelector<HTMLElement>('[data-studio-clock]')
+    const time = clock?.querySelector<HTMLTimeElement>('[data-studio-time]')
+    if (!clock || !time) return
+
+    if (!clock.dataset.ready) time.style.minInlineSize = `${time.offsetWidth}px`
+
+    const tick = () => {
+      const now = new Date()
+      time.textContent = `${formatStudioTime(now)} ${formatStudioZone(now)}`
+      time.dateTime = now.toISOString()
+      clock.dataset.ready = ''
+      timer = window.setTimeout(tick, 60_000 - (now.getTime() % 60_000) + 50)
+    }
+    tick()
+  }
+
+  armStudioClock()
+  document.addEventListener('astro:page-load', armStudioClock)
+</script>
 
 <style>
   .site-footer {
@@ -219,6 +257,18 @@ const year = new Date().getFullYear()
     color: var(--color-on-ink-muted);
     font-size: 0.8125rem;
     font-variant-numeric: tabular-nums;
+  }
+
+  .footer-clock {
+    white-space: nowrap;
+  }
+
+  .footer-clock time {
+    display: inline-block;
+  }
+
+  .footer-clock:not([data-ready]) {
+    visibility: hidden;
   }
 
   @media (max-width: 767px) {

@@ -91,13 +91,27 @@ const faqs = [
     <header class="process-head" data-reveal>
       <span class="page-label">Process</span>
       <h2 class="process-heading">
-        Most projects start with an idea. Mine start with your team's most
+        Most projects start with an idea. Mine start with your team&rsquo;s most
         annoying Tuesday.
       </h2>
+      <div class="process-rail" data-process-rail aria-hidden="true">
+        <span class="process-rail-fill"></span>
+        <ol class="process-rail-steps" style={`--steps: ${steps.length}`}>
+          {steps.map((step) => (
+            <li data-process-mark>{step.title}</li>
+          ))}
+        </ol>
+      </div>
     </header>
-    <ol class="process-steps">
+    <ol class="process-steps" data-process-steps>
       {steps.map((step, i) => (
-        <li class="process-step" data-reveal style={`--reveal-delay: ${i * 80}ms`}>
+        <li
+          class="process-step"
+          data-reveal
+          data-process-step
+          data-active={i === 0 ? '' : undefined}
+          style={`--reveal-delay: ${i * 80}ms`}
+        >
           <span class="process-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
           <div class="process-text">
             <h3 class="process-title">{step.title}</h3>
@@ -136,6 +150,14 @@ const faqs = [
         </li>
       ))}
     </ul>
+    <div class="work-cursor" data-work-cursor aria-hidden="true">
+      <span class="work-cursor-pill">
+        View project
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+          <path d="M3 13L13 3M13 3H6M13 3V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+    </div>
   </section>
 
   <section class="bigtype" aria-hidden="true">
@@ -160,7 +182,10 @@ const faqs = [
         <details class="faq-item" name="faq" data-reveal style={`--reveal-delay: ${i * 60}ms`}>
           <summary class="faq-question">
             <span>{item.q}</span>
-            <span class="faq-icon" aria-hidden="true">+</span>
+            <svg class="faq-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <rect x="0" y="6.25" width="14" height="1.5" rx="0.75" />
+              <rect class="faq-icon-v" x="6.25" y="0" width="1.5" height="14" rx="0.75" />
+            </svg>
           </summary>
           <div class="faq-answer">
             <p set:html={item.a} />
@@ -173,6 +198,165 @@ const faqs = [
 
 <script>
   import { calculateBigtypeShift } from '../scripts/bigtype-motion.mjs'
+  import { getActiveStep, getRailProgress } from '../scripts/process-motion.mjs'
+
+  /*
+   * The process reads as a workflow moving forward. An anchor line at the
+   * middle of the viewport walks down the steps: the rail under the sticky
+   * heading fills with it and the step it is inside wakes its numeral.
+   * Reduced motion keeps the information (which step, how far) and loses
+   * only the transitions, which the stylesheet drops.
+   */
+  function armProcess() {
+    const list = document.querySelector<HTMLElement>('[data-process-steps]')
+    const rail = document.querySelector<HTMLElement>('[data-process-rail]')
+    if (!list || !rail || list.dataset.armed) return
+    // Set in the same task as the first update(), so no frame paints the
+    // armed colours before the active step is known.
+    list.dataset.armed = ''
+    rail.dataset.armed = ''
+    const steps = Array.from(list.querySelectorAll<HTMLElement>('[data-process-step]'))
+    const marks = Array.from(rail.querySelectorAll<HTMLElement>('[data-process-mark]'))
+
+    let active = -1
+    let ticking = false
+    const update = () => {
+      ticking = false
+      // A view transition swaps the page out; stop listening for a list that
+      // is no longer in the document.
+      if (!list.isConnected) {
+        removeEventListener('scroll', onScroll)
+        removeEventListener('resize', onScroll)
+        resizes.disconnect()
+        return
+      }
+      const anchor = innerHeight / 2
+      const tops = steps.map((step) => step.getBoundingClientRect().top)
+      const end = list.getBoundingClientRect().bottom
+      rail.style.setProperty('--process-progress', String(getRailProgress(tops, end, anchor)))
+      const next = getActiveStep(tops, anchor)
+      if (next === active) return
+      active = next
+      steps.forEach((step, i) => step.toggleAttribute('data-active', i === active))
+      marks.forEach((mark, i) => mark.toggleAttribute('data-reached', i <= active))
+    }
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(update)
+    }
+    // Font swaps, late images and restored scroll move the steps without a
+    // scroll event; re-measure whenever the list's box changes.
+    const resizes = new ResizeObserver(onScroll)
+    addEventListener('scroll', onScroll, { passive: true })
+    addEventListener('resize', onScroll, { passive: true })
+    resizes.observe(list)
+    update()
+    requestAnimationFrame(() => {
+      list.dataset.live = ''
+    })
+  }
+
+  /*
+   * A pill that follows the pointer over a project and names what a click
+   * does. Fine pointers only: on touch there is no hover to follow. It snaps
+   * to the pointer on entry, so it never flies in from where it was last
+   * left, then trails on a frame-rate independent ease so it reads as
+   * attached rather than glued. Under reduced motion it tracks 1:1.
+   */
+  function armWorkCursor() {
+    const pill = document.querySelector<HTMLElement>('[data-work-cursor]')
+    if (!pill || pill.dataset.armed) return
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return
+    pill.dataset.armed = ''
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+    const links = document.querySelectorAll<HTMLElement>('.work-item a')
+
+    const pos = { x: 0, y: 0 }
+    const goal = { x: 0, y: 0 }
+    let frame = 0
+    let last = 0
+    let shown = false
+    let hiddenAt = -Infinity
+
+    const paint = () => {
+      pill.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`
+    }
+    const tick = (now: number) => {
+      const dt = last ? Math.min(64, now - last) : 16
+      last = now
+      // Closes ~94% of the gap in 100ms whatever the refresh rate.
+      const k = 1 - Math.exp(-dt / 36)
+      pos.x += (goal.x - pos.x) * k
+      pos.y += (goal.y - pos.y) * k
+      paint()
+      if (Math.abs(goal.x - pos.x) + Math.abs(goal.y - pos.y) > 0.3) {
+        frame = requestAnimationFrame(tick)
+      } else {
+        frame = 0
+        last = 0
+      }
+    }
+    const follow = (event: PointerEvent) => {
+      // A hybrid laptop's touchscreen still fires pointer events here; a tap
+      // has no hover to follow and would strand the pill where it landed.
+      if (event.pointerType !== 'mouse') return
+      goal.x = event.clientX
+      goal.y = event.clientY
+      if (!shown || still) {
+        pos.x = goal.x
+        pos.y = goal.y
+        paint()
+        return
+      }
+      if (!frame) frame = requestAnimationFrame(tick)
+    }
+
+    const hide = () => {
+      if (!pill.isConnected) {
+        removeEventListener('blur', hide)
+        document.removeEventListener('visibilitychange', hide)
+        return
+      }
+      if (!pill.hasAttribute('data-visible')) return
+      shown = false
+      hiddenAt = performance.now()
+      pill.toggleAttribute('data-visible', false)
+    }
+    // Keyboard or scrollbar scrolling moves the tile away from a still mouse
+    // without a pointerleave; hide the pill once it no longer sits on a tile.
+    let checking = false
+    const recheck = () => {
+      checking = false
+      if (!pill.isConnected) {
+        removeEventListener('scroll', onScroll)
+        return
+      }
+      if (!document.elementFromPoint(goal.x, goal.y)?.closest('.work-item a')) hide()
+    }
+    const onScroll = () => {
+      if (checking || !pill.hasAttribute('data-visible')) return
+      checking = true
+      requestAnimationFrame(recheck)
+    }
+    addEventListener('scroll', onScroll, { passive: true })
+    addEventListener('blur', hide)
+    document.addEventListener('visibilitychange', hide)
+
+    links.forEach((link) => {
+      link.addEventListener('pointerenter', (event) => {
+        if (event.pointerType !== 'mouse') return
+        // Crossing straight to the next tile catches the pill mid fade-out:
+        // glide it over from where it is instead of snapping it there.
+        if (performance.now() - hiddenAt < 150) shown = true
+        follow(event)
+        shown = true
+        pill.toggleAttribute('data-visible', true)
+      })
+      link.addEventListener('pointermove', follow)
+      link.addEventListener('pointerleave', hide)
+    })
+  }
 
   function armBigtype() {
     const lines = Array.from(
@@ -214,8 +398,14 @@ const faqs = [
     update()
   }
 
-  armBigtype()
-  document.addEventListener('astro:page-load', armBigtype)
+  function armHome() {
+    armBigtype()
+    armProcess()
+    armWorkCursor()
+  }
+
+  armHome()
+  document.addEventListener('astro:page-load', armHome)
 </script>
 
 <style>
@@ -359,32 +549,72 @@ const faqs = [
     list-style: none;
     font-weight: 500;
     color: var(--color-ink);
-    transition: color 200ms;
+    transition: color 150ms ease;
   }
 
   .faq-question::-webkit-details-marker {
     display: none;
   }
 
-  .faq-question:hover {
-    color: var(--color-accent);
+  @media (hover: hover) {
+    .faq-question:hover {
+      color: var(--color-accent);
+    }
   }
 
   .faq-question:focus-visible {
     outline-offset: -2px;
   }
 
+  /*
+   * A drawn plus, not a glyph: the text "+" sat on the font's math axis and
+   * read a pixel high against the question. Opening turns the vertical bar
+   * flat onto the horizontal one, so the plus becomes a minus by one shape
+   * moving rather than one icon swapping for another.
+   */
   .faq-icon {
-    font-family: var(--font-body);
-    font-size: 1.25rem;
-    font-weight: 400;
-    line-height: 1;
-    color: var(--color-muted);
+    flex-shrink: 0;
+    align-self: center;
+    fill: var(--color-muted);
+    transition: fill 150ms ease;
+  }
+
+  .faq-icon-v {
+    transform-box: fill-box;
+    transform-origin: center;
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .faq-item[open] .faq-icon {
-    transform: rotate(45deg);
+  .faq-item[open] .faq-icon-v {
+    transform: rotate(90deg);
+  }
+
+  @media (hover: hover) {
+    .faq-question:hover .faq-icon {
+      fill: currentColor;
+    }
+  }
+
+  /*
+   * The answer opens to its height instead of appearing at it. Browsers
+   * without ::details-content keep the instant open plus the fade below, so
+   * this is enhancement only. Closing runs faster than opening.
+   */
+  .faq-item {
+    interpolate-size: allow-keywords;
+  }
+
+  .faq-item::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      content-visibility 220ms allow-discrete;
+  }
+
+  .faq-item[open]::details-content {
+    block-size: auto;
+    transition-duration: 320ms;
   }
 
   .faq-answer {
@@ -420,7 +650,14 @@ const faqs = [
       animation: none;
     }
 
-    .faq-icon {
+    .faq-icon,
+    .faq-icon-v {
+      transition: none;
+    }
+
+    /* Its own rule: a list holding a pseudo-element the browser does not
+       know is dropped whole, which took the icon rule above down with it. */
+    .faq-item::details-content {
       transition: none;
     }
   }
@@ -510,6 +747,50 @@ const faqs = [
     .work-item a:hover .work-title {
       color: var(--color-accent);
     }
+  }
+
+  /*
+   * Fixed to the viewport and moved by transform alone. The inner pill
+   * carries the enter and exit (scale from 0.95, never 0), the outer layer
+   * carries position, so the two never fight over one transform.
+   */
+  .work-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .work-cursor-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    margin: 14px 0 0 14px;
+    border-radius: 9999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 2px 12px var(--color-overlay);
+    opacity: 0;
+    transform: scale(0.95);
+    transform-origin: top left;
+    transition:
+      opacity 120ms ease-out,
+      transform 120ms ease-out;
+  }
+
+  .work-cursor[data-visible] .work-cursor-pill {
+    opacity: 1;
+    transform: none;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .work-meta {
@@ -630,6 +911,94 @@ const faqs = [
     margin-top: 0.25rem;
   }
 
+  /*
+   * The rail: one hairline split into four segments, a tick and a label per
+   * step. The ink fill is a scaled layer over the hairline (transform only),
+   * driven by --process-progress from the scroll script. Without JS it never
+   * renders, since the variable has no value to fill to.
+   */
+  .process-rail {
+    display: none;
+  }
+
+  .process-rail[data-armed] {
+    position: relative;
+    display: block;
+    margin-top: clamp(2rem, 5vh, 3rem);
+    max-width: 26rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .process-rail-fill {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--color-ink);
+    transform: scaleX(var(--process-progress, 0));
+    transform-origin: left center;
+    pointer-events: none;
+  }
+
+  .process-rail-steps {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(var(--steps, 4), 1fr);
+  }
+
+  .process-rail-steps li {
+    position: relative;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    color: var(--color-muted);
+    transition: color 200ms ease;
+  }
+
+  /* The tick that the fill reaches as this step wakes. */
+  .process-rail-steps li::before {
+    content: '';
+    position: absolute;
+    top: calc(-0.875rem - 3.5px);
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: var(--color-bg);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .process-rail-steps li[data-reached] {
+    color: var(--color-ink);
+  }
+
+  .process-rail-steps li[data-reached]::before {
+    background: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
+  /*
+   * Steps wake in turn. Only the numeral steps down while asleep; titles and
+   * body copy keep their contrast, because someone reading ahead of the
+   * anchor is still reading. Gated on hooks the script sets, not html.js, so
+   * a script that fails to load leaves every step awake rather than stuck
+   * asleep. The transition arrives a frame after the first state is applied,
+   * so a reload mid-section paints the right state instead of fading to it.
+   */
+  [data-process-steps][data-armed] .process-num {
+    color: oklch(74% 0.003 260);
+  }
+
+  [data-process-steps][data-live] .process-num {
+    transition: color 400ms ease;
+  }
+
+  [data-process-steps][data-armed] .process-step[data-active] .process-num {
+    color: var(--color-ink);
+  }
+
   .process-steps {
     list-style: none;
     border-top: 1px solid var(--color-border);
@@ -692,6 +1061,12 @@ const faqs = [
     .process-head {
       position: static;
     }
+
+    /* The heading scrolls away on a phone, so a rail under it would report
+       progress nobody can see. The numerals still wake in turn. */
+    .process-rail[data-armed] {
+      display: none;
+    }
   }
 
   @media (max-width: 767px) {
@@ -719,8 +1094,16 @@ const faqs = [
       animation: none;
     }
 
-    .work-frame img {
+    .work-frame img,
+    .work-cursor-pill,
+    [data-process-steps][data-live] .process-num,
+    .process-rail-steps li,
+    .process-rail-steps li::before {
       transition: none;
+    }
+
+    .work-cursor-pill {
+      transform: none;
     }
   }
 </style>
